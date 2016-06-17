@@ -10,6 +10,7 @@
 #import <CoreFoundation/CoreFoundation.h> 
 #include <sys/socket.h> 
 #include <netinet/in.h>
+#import "ASScreenRecorder.h"
 
 @interface RTSPServer : NSObject
 
@@ -25,4 +26,6 @@
 @property (readwrite, atomic) int bitrate;
 @property (readonly, nonatomic) short port;
 
+@property (readonly, atomic) NSUInteger connectionNum;
+@property (atomic, weak) ASScreenRecorder* recoder;
 @end

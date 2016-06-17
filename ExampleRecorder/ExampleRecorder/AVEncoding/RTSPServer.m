@@ -55,6 +55,12 @@ static void onSocket (
 
 @synthesize bitrate = _bitrate;
 
+
+-(NSUInteger)connectionNum
+{
+    return _connections.count;
+}
+
 + (RTSPServer*) setupListener:(NSData*) configData
 {
     RTSPServer* obj = [RTSPServer alloc];
@@ -133,6 +139,9 @@ static void onSocket (
         {
             NSLog(@"Client connected");
             [_connections addObject:conn];
+            if (_connections.count == 1) {
+                [self.recoder startRecording];
+            }
         }
     }
     
@@ -155,6 +164,11 @@ static void onSocket (
     {
         NSLog(@"Client disconnected");
         [_connections removeObject:conn];
+        if (_connections.count == 0) {
+            [self.recoder stopRecordingWithCompletion:^(){
+                [self.recoder setUpWriter];
+            }];
+        }
     }
 }
 

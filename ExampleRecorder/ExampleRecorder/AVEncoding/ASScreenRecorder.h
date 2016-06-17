@@ -23,7 +23,7 @@ typedef void (^VideoCompletionBlock)(void);
 + (instancetype)sharedInstance;
 - (BOOL)startRecording;
 - (BOOL)startSampleRecodrding;
-
+-(void)setUpWriter;
 - (void)stopRecordingWithCompletion:(VideoCompletionBlock)completionBlock;
 @end
 

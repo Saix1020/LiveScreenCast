@@ -30,6 +30,7 @@
 @property (nonatomic, strong) AVEncoder* encoder;
 @property (nonatomic, strong) dispatch_queue_t append_pixelBuffer_queue;
 @property (nonatomic) BOOL isSampleRecording;
+@property (nonatomic) BOOL sampleRecodingFinished;
 @property (nonatomic, strong) NSString* sampleFilePath;
 
 @property (nonatomic, strong) NSThread* backgroundThread;
@@ -121,6 +122,10 @@
 
 -(BOOL)startSampleRecodrding
 {
+    if (_sampleRecodingFinished) {
+        return [self startRecording];
+    }
+    
     if (!_isSampleRecording) {
         [self setUpSampleWrite];
         _isSampleRecording = (_videoWriter.status == AVAssetWriterStatusWriting);
@@ -243,11 +248,15 @@
         return 0;
     } onParams:^int(NSData *data) {
         typeof(self) strongSelf = weakSelf;
+        if (!strongSelf.rtsp){
+            strongSelf.rtsp = [RTSPServer setupListener:data];
+            strongSelf.rtsp.recoder = strongSelf;
+            NSString* ipaddr = [RTSPServer getIPAddress];
+            NSString* url = [NSString stringWithFormat:@"rtsp://%@:%hd/", ipaddr, strongSelf.rtsp.port];
+            NSLog(@"url: %@", url);
+        }
 
-        strongSelf.rtsp = [RTSPServer setupListener:data];
-        NSString* ipaddr = [RTSPServer getIPAddress];
-        NSString* url = [NSString stringWithFormat:@"rtsp://%@:%hd/", ipaddr, strongSelf.rtsp.port];
-        NSLog(@"url: %@", url);
+        
         return 0;
     }];
     
@@ -384,10 +393,11 @@
     if (_encoder) {
         [_encoder setWriter:nil];
         [_encoder shutdown];
-        [_rtsp shutdownServer];
+        //[_rtsp shutdownServer];
     }
 
 }
+
 
 - (void)writeVideoFrame
 {
@@ -398,7 +408,7 @@
 //        return;
 //    }
     _count ++;
-    if (_count%4 !=1) {
+    if (_count%2 !=1) {
         return;
     }
     
@@ -458,8 +468,10 @@
                     struct stat s;
                     fstat([file fileDescriptor], &s);
                     if (s.st_size>0) {
-                        [self stopSampleRecordingWithCompletion:^(){
-                            [self startRecording];
+                        [strongSelf stopSampleRecordingWithCompletion:^(){
+                            strongSelf.sampleRecodingFinished = YES;
+                            [strongSelf setUpWriter];
+                            //[strongSelf startRecording];
                         }];
                     }
                 }
